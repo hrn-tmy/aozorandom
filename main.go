@@ -1,29 +1,15 @@
 package main
 
 import (
-	"archive/zip"
 	"bytes"
-	"encoding/csv"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"strings"
-
-	"golang.org/x/text/transform"
-
-	"golang.org/x/text/encoding/japanese"
 )
 
 const URL = "https://www.aozora.gr.jp/index_pages/list_person_all.zip"
-
-type Book struct {
-	Author    string
-	Title     string
-	Publisher string
-}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -33,58 +19,12 @@ func main() {
 	}
 	key := os.Args[1]
 
-	resp, err := http.Get(URL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	data, err := fetchCSV()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	zipReader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	books := []Book{}
-	for _, f := range zipReader.File {
-		rc, err := f.Open()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer rc.Close()
-
-		reader := transform.NewReader(rc, japanese.ShiftJIS.NewDecoder())
-		csvReader := csv.NewReader(reader)
-		csvReader.FieldsPerRecord = -1
-
-		// ヘッダー行をスキップ
-		if _, err := csvReader.Read(); err != nil {
-			log.Fatal(err)
-		}
-
-		for {
-			record, err := csvReader.Read()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Fatal(err)
-			}
-			author := record[1]
-			title := record[3]
-			publisher := record[11]
-
-			books = append(books, Book{
-				Author:    author,
-				Title:     title,
-				Publisher: publisher,
-			})
-		}
-	}
+	books, err := parseCSV(bytes.NewReader(data))
 
 	var matched []Book
 	for _, b := range books {
