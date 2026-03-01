@@ -26,6 +26,11 @@ type Book struct {
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("コマンドを入力してください。")
+		fmt.Println("例： aozora 夏目")
+		os.Exit(1)
+	}
 	author := os.Args[1]
 
 	resp, err := http.Get(URL)
@@ -89,7 +94,8 @@ func main() {
 	}
 
 	if len(matched) == 0 {
-		log.Fatalf("「%s」の作品が見つかりませんでした\n", author)
+		fmt.Printf("「%s」の作品が見つかりませんでした\n", author)
+		os.Exit(1)
 	}
 
 	pick := matched[rand.Intn(len(matched))]
